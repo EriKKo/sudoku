@@ -2,7 +2,6 @@
   (:gen-class))
 
 (def sum #(reduce + %))
-(def merge-seq #(reduce into %&))
 
 (defn get-cell-values
   "Returns the values from a sub-section of a grid"
@@ -29,7 +28,7 @@
   [grid row col]
   (let [sq-row (* (quot row 3) 3) sq-col (* (quot col 3) 3)]
   (distinct
-    (merge-seq
+    (concat
       (get-cell-values grid sq-row sq-col (+ sq-row 3) (+ sq-col 3))
       (get-cell-values grid row 0 (+ row 1) 9)
       (get-cell-values grid 0 col 9 (+ col 1))))))
