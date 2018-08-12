@@ -8,7 +8,7 @@
   (for [r (range r1 r2) c (range c1 c2)]
     ((s r) c)))
 
-(defn good-range
+(defn good-range?
   [s r1 c1 r2 c2]
   (let [values (get-range s r1 c1 r2 c2)]
     (= (sum values) (sum (distinct values)))))
@@ -16,9 +16,9 @@
 (defn good?
   [s]
   (and
-    (every? #(good-range s % 0 (+ % 1) 9) (range 0 9))
-    (every? #(good-range s 0 % 9 (+ % 1)) (range 0 9))
-    (every? true? (for [x [0 3 6] y [0 3 6]] (good-range s x y (+ x 3) (+ y 3))))))
+    (every? #(good-range? s % 0 (+ % 1) 9) (range 0 9))
+    (every? #(good-range? s 0 % 9 (+ % 1)) (range 0 9))
+    (every? true? (for [x [0 3 6] y [0 3 6]] (good-range? s x y (+ x 3) (+ y 3))))))
 
 (defn forbidden-values
   [s r c]
