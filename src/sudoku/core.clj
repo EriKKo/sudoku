@@ -3,53 +3,57 @@
 
 (def sum #(reduce + %))
 
-(defn get-range
-  [s r1 c1 r2 c2]
-  (for [r (range r1 r2) c (range c1 c2)]
-    ((s r) c)))
+(defn get-cell-values
+  "Returns the values from a sub-section of a grid"
+  [grid row-start col-start row-end col-end]
+  (for [row (range row-start row-end) col (range col-start col-end)]
+    ((grid row) col)))
 
 (defn good-range?
-  [s r1 c1 r2 c2]
-  (let [values (get-range s r1 c1 r2 c2)]
+  "Checks if a sub-section of a grid contains no duplicates (empty cells are ignored)"
+  [grid row-start col-start row-end col-end]
+  (let [values (get-cell-values grid row-start col-start row-end col-end)]
     (= (sum values) (sum (distinct values)))))
 
 (defn good?
-  [s]
+  "Checks if the filled in numbers of a sudoku are consistent with each other"
+  [grid]
   (and
-    (every? #(good-range? s % 0 (+ % 1) 9) (range 0 9))
-    (every? #(good-range? s 0 % 9 (+ % 1)) (range 0 9))
-    (every? true? (for [x [0 3 6] y [0 3 6]] (good-range? s x y (+ x 3) (+ y 3))))))
+    (every? #(good-range? grid % 0 (+ % 1) 9) (range 0 9))
+    (every? #(good-range? grid 0 % 9 (+ % 1)) (range 0 9))
+    (every? true? (for [row [0 3 6] col [0 3 6]] (good-range? grid row col (+ row 3) (+ col 3))))))
 
 (defn forbidden-values
-  [s r c]
-  (let [r0 (* (quot r 3) 3) c0 (* (quot c 3) 3)]
+  "Values that can not go into a given empty cell. I.e. values that occur in the same row, column or square"
+  [grid row col]
+  (let [sq-row (* (quot row 3) 3) sq-col (* (quot col 3) 3)]
   (distinct
     (into
-      (get-range s r0 c0 (+ r0 3) (+ c0 3))
+      (get-cell-values grid sq-row sq-col (+ sq-row 3) (+ sq-col 3))
       (into 
-        (into [] (get-range s r 0 (+ r 1) 9))
-        (get-range s 0 c 9 (+ c 1)))))))
+        (into [] (get-cell-values grid row 0 (+ row 1) 9))
+        (get-cell-values grid 0 col 9 (+ col 1)))))))
 
 (defn next-cell
   "Returns the coordinates of a cell with the lowest possible branching factor (possible digits)"
-  [s]
-  (let [empty-cells (filter #(< ((s (% 0)) (% 1)) 1) (for [r (range 0 9) c (range 0 9)] [r c]))]
+  [grid]
+  (let [empty-cells (filter #(< ((grid (% 0)) (% 1)) 1) (for [row (range 0 9) col (range 0 9)] [row col]))]
     (if (empty? empty-cells)
       nil
-      (apply max-key #(count (forbidden-values s (% 0) (% 1))) empty-cells))))
+      (apply max-key #(count (forbidden-values grid (% 0) (% 1))) empty-cells))))
 
 (defn solve
-  [s]
-  (let [cell (next-cell s)]
+  [grid]
+  (let [cell (next-cell grid)]
     (if (not cell)
-      s
-      (let [forbidden (forbidden-values s (cell 0) (cell 1))]
+      grid
+      (let [forbidden (forbidden-values grid (cell 0) (cell 1))]
         (loop [i 1]
           (if (<= i 9)
             (if (not (some #(= % i) forbidden))
-              (let [res (solve (assoc s (cell 0) (assoc (s (cell 0)) (cell 1) i)))]
-                (if res
-                  res
+              (let [solved-grid (solve (assoc grid (cell 0) (assoc (grid (cell 0)) (cell 1) i)))]
+                (if solved-grid
+                  solved-grid
                   (recur (+ i 1))))
               (recur (+ i 1)))
             nil))))))
@@ -75,11 +79,11 @@
 
 (defn -main
   [& args]
-  (let [m (read-sudoku (java.io.BufferedReader. *in*))]
+  (let [input-grid (read-sudoku (java.io.BufferedReader. *in*))]
     (println "Input sudoku:")
-    (print-sudoku m)
-    (let [solved (solve m)]
+    (print-sudoku input-grid)
+    (let [solved-grid (solve input-grid)]
       (println "Output sudoku:")
-      (print-sudoku solved)
-      (if (not (good? solved))
+      (print-sudoku solved-grid)
+      (if (not (good? solved-grid))
         (println "Something is wrong here, sudoku no good :(")))))
