@@ -2,6 +2,7 @@
   (:gen-class))
 
 (def sum #(reduce + %))
+(def merge-seq #(reduce into %&))
 
 (defn get-cell-values
   "Returns the values from a sub-section of a grid"
@@ -24,15 +25,14 @@
     (every? true? (for [row [0 3 6] col [0 3 6]] (good-range? grid row col (+ row 3) (+ col 3))))))
 
 (defn forbidden-values
-  "Values that can not go into a given empty cell. I.e. values that occur in the same row, column or square"
+  "Values that can not go into a given empty cell. I.e. values that already occur in the same row, column or square"
   [grid row col]
   (let [sq-row (* (quot row 3) 3) sq-col (* (quot col 3) 3)]
   (distinct
-    (into
+    (merge-seq
       (get-cell-values grid sq-row sq-col (+ sq-row 3) (+ sq-col 3))
-      (into 
-        (into [] (get-cell-values grid row 0 (+ row 1) 9))
-        (get-cell-values grid 0 col 9 (+ col 1)))))))
+      (get-cell-values grid row 0 (+ row 1) 9)
+      (get-cell-values grid 0 col 9 (+ col 1))))))
 
 (defn next-cell
   "Returns the coordinates of a cell with the lowest possible branching factor (possible digits)"
@@ -47,16 +47,12 @@
   (let [cell (next-cell grid)]
     (if (not cell)
       grid
-      (let [forbidden (forbidden-values grid (cell 0) (cell 1))]
-        (loop [i 1]
-          (if (<= i 9)
-            (if (not (some #(= % i) forbidden))
-              (let [solved-grid (solve (assoc grid (cell 0) (assoc (grid (cell 0)) (cell 1) i)))]
-                (if solved-grid
-                  solved-grid
-                  (recur (+ i 1))))
-              (recur (+ i 1)))
-            nil))))))
+      (let [[row col] cell forbidden (into #{} (forbidden-values grid row col))]
+        (some 
+          #(and 
+            (not (contains? forbidden %))
+            (solve (assoc grid row (assoc (grid row) col %))))
+          (range 1 10))))))
 
 (defn parse-cell
   [cell]
